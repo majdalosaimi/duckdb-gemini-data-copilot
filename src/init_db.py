@@ -10,7 +10,7 @@ DB_PATH = Path("data/analytics.duckdb")
 
 
 def initialize_database(db_path: Path = DB_PATH) -> None:
-    """Creating tables, ingesting real-world data for sales, customers and product"""
+    """Creating tables and injecting realistic data for sales, customers, and products."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(db_path))
 

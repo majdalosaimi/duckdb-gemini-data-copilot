@@ -9,7 +9,7 @@ import duckdb
 
 
 class DatabaseManager:
-    """مدير الاتصال بقاعدة البيانات واستخراج البيانات الوصفية (Metadata)."""
+    """Database Connection and Metadata Extraction Manager"""
 
     def __init__(self, db_path: str = "data/analytics.duckdb", read_only: bool = True):
         self.db_path = Path(db_path)
@@ -18,18 +18,18 @@ class DatabaseManager:
         self.read_only = read_only
 
     def get_connection(self) -> duckdb.DuckDBPyConnection:
-        """فتح اتصال معزول مع التحقق من الأمان (Read-Only)."""
+        """Open an isolated connection with security verification (Read-Only)."""
         return duckdb.connect(str(self.db_path), read_only=self.read_only)
 
     def get_schema_context(self) -> str:
         """
-        استخراج Schema الجداول والأعمدة وعينات توضيحية بصيغة نصية مهيكلة للـ LLM.
+        Extracting table and column schemas, along with illustrative samples, in a structured text format for LLMs.
         """
         con = self.get_connection()
         schema_prompt = []
 
         try:
-            # جلب أسماء الجداول
+            # Retrieve table names
             tables = con.execute("""
                 SELECT table_name 
                 FROM information_schema.tables 
@@ -40,7 +40,7 @@ class DatabaseManager:
                 schema_prompt.append(f"Table: {table_name}")
                 schema_prompt.append("Columns:")
 
-                # جلب أسماء الأعمدة وأنواع بياناتها
+                # Retrieve column names and their data types.
                 columns = con.execute(f"""
                     SELECT column_name, data_type 
                     FROM information_schema.columns 
@@ -48,7 +48,7 @@ class DatabaseManager:
                 """).fetchall()
 
                 for col_name, data_type in columns:
-                    # جلب عينات من القيم الفريدة للأعمدة النصية لتفادي الهلوسة في شروط الـ Filter
+                    # Retrieving samples of unique values ​​from text columns to avoid hallucinations in filter conditions.
                     sample_str = ""
                     if data_type in ("VARCHAR", "TEXT"):
                         samples = con.execute(f"""
@@ -63,7 +63,7 @@ class DatabaseManager:
 
                     schema_prompt.append(f"  - {col_name} ({data_type}){sample_str}")
 
-                schema_prompt.append("")  # سطر فارغ بين الجداول
+                schema_prompt.append("") # Empty line between tables
 
             return "\n".join(schema_prompt).strip()
 
@@ -71,7 +71,7 @@ class DatabaseManager:
             con.close()
 
     def execute_query(self, query: str) -> List[Dict[str, Any]]:
-        """تنفيذ استعلام SQL وإرجاع النتيجة كقائمة قواميس."""
+        """Execute an SQL query and return the result as a list of dictionaries."""
         con = self.get_connection()
         try:
             df = con.execute(query).df()
@@ -81,7 +81,7 @@ class DatabaseManager:
 
 
 if __name__ == "__main__":
-    # اختبار استخراج الـ Schema
+    # Schema Extraction Test
     db_manager = DatabaseManager()
     schema_str = db_manager.get_schema_context()
     print("--- Extracted Schema Context for LLM ---\n")
