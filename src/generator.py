@@ -42,9 +42,9 @@ class SQLGenerator:
         
         self.candidate_models = [
             primary_model,
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
-            "gemini-3.8-flash"
+            primary_model,
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite"
         ]
 
     def _call_model_with_retry(self, model_name: str, prompt: str, max_retries: int = 3):
