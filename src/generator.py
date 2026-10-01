@@ -42,7 +42,6 @@ class SQLGenerator:
         
         self.candidate_models = [
             primary_model,
-            primary_model,
             "gemini-3.8-flash",
             "gemini-3.5-flash-lite"
         ]

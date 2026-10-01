@@ -27,13 +27,43 @@ class VisualizerAndSynthesizer:
         self.client = genai.Client(api_key=api_key)
         self.candidate_models = [primary_model, "gemini-3.5-flash-lite"]
 
+    def _prepare_data_context(self, df: pd.DataFrame, threshold: int = 30) -> str:
+        """
+        Adaptive data context preparation:
+        - If the number of rows ≤ threshold: The entire table is passed.
+        - If the number of rows > threshold: A statistical summary is passed, along with the top and bottom rows.
+        """
+        total_rows = len(df)
+
+        if total_rows <= threshold:
+            return f"Full Result Set ({total_rows} rows):\n" + df.to_string(index=False)
+
+        # Preparing the statistical summary for numerical columns
+        numeric_cols = df.select_dtypes(include=["number"])
+        summary_stats = ""
+        if not numeric_cols.empty:
+            summary_stats = f"\nStatistical Summary (Key Metrics):\n{numeric_cols.describe().to_string()}\n"
+
+        top_rows = df.head(5).to_string(index=False)
+        bottom_rows = df.tail(5).to_string(index=False)
+
+        return f"""
+                Dataset Dimensions: Total of {total_rows} rows returned.
+                {summary_stats}
+                Top 5 Sample Records:
+                {top_rows}
+
+                Bottom 5 Sample Records:
+                {bottom_rows}
+                """
+
     def synthesize_insights(self, user_query: str, data: List[Dict[str, Any]]) -> str:
         """Translating numerical outputs into concise analytical conclusions and recommendations for decision-makers."""
         if not data:
             return "لم يتم العثور على سجلات تطابق شروط الاستعلام المطلوبة."
 
-        # Converting the data sample into raw text without relying on external libraries.
-        df_sample = pd.DataFrame(data).head(10).to_string(index=False)
+        df = pd.DataFrame(data)
+        data_context = self._prepare_data_context(df, threshold=30)
 
         prompt = f"""
                 You are an Executive Senior Data Analyst.
@@ -41,12 +71,12 @@ class VisualizerAndSynthesizer:
 
                 User Question: {user_query}
 
-                Extracted Data:
-                {df_sample}
+                Extracted Data Context:
+                {data_context}
 
                 Rules:
-                1. Provide a direct answer in 1-2 sharp sentences.
-                2. Highlight 2-3 key quantitative findings (use bullet points with numbers, ranks, or totals).
+                1. Provide a direct, assertive answer in 1-2 sharp sentences.
+                2. Highlight 2-3 key quantitative findings (use bullet points with percentages, ranks, or totals).
                 3. Conclude with one actionable business recommendation.
                 4. Respond in the same language as the user's question (Arabic if Arabic, English if English).
                 """
@@ -143,17 +173,12 @@ if __name__ == "__main__":
     executor = SafeSQLExecutor(db_mgr, gen)
     viz = VisualizerAndSynthesizer(primary_model="gemini-3.8-flash")
 
-    query = "ما هي إيرادات كل منطقة جغرافية بعد الخصم؟"
+    # Run a query that returns more than 30 rows to verify the statistical summary.
+    query = "اعرض قائمة بكافة المعاملات مع أسماء العملاء والمبالغ"
     exec_res = executor.run_with_self_healing(query, schema)
 
     if exec_res.success:
-        print("--- Data Table ---")
-        print(pd.DataFrame(exec_res.data))
-
-        print("\n--- Executive Summary (LLM Insights) ---")
+        print(f"Total Rows Fetched: {exec_res.row_count}")
         insights = viz.synthesize_insights(query, exec_res.data)
+        print("\n--- Executive Summary (Generated via Adaptive Context) ---")
         print(insights)
-
-        fig = viz.create_figure(exec_res.data, chart_type=exec_res.intended_chart_type)
-        if fig:
-            print("\n Plotly Figure generated successfully.")
