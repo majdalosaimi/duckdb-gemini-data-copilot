@@ -91,6 +91,7 @@ duckdb-gemini-data-copilot/
 │   └── init_db.py                 # Synthetic transactional data generator (Star Schema)
 ├── app.py                         # Streamlit conversational web dashboard
 ├── requirements.txt               # Locked project dependencies
+├── .env.example                   # Environment configuration template
 └── README.md
 ```
 
