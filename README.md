@@ -99,7 +99,7 @@ duckdb-gemini-data-copilot/
 ## Setup & Execution Guide
 ### 1. Clone & Set Up Environment
 ``` text
-git clone [https://github.com/majdalosaimi/duckdb-gemini-data-copilot.git](https://github.com/your-username/duckdb-gemini-data-copilot.git)
+git clone https://github.com/majdalosaimi/duckdb-gemini-data-copilot.git
 cd duckdb-gemini-data-copilot
 
 # Create and activate virtual environment
